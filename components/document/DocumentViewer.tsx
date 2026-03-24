@@ -119,7 +119,7 @@ export default function DocumentViewer({
 
       {/* Selection Toolbar */}
       {selectedText && selectionRect && (
-        <div data-selection-toolbar>
+        <div data-selection-toolbar onMouseUp={(e) => e.stopPropagation()}>
           <SelectionToolbar
             rect={selectionRect}
             selectedText={selectedText}

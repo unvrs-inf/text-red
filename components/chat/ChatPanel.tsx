@@ -39,6 +39,16 @@ export default function ChatPanel({ document, onError, selectedText, onClearSele
     }
   };
 
+  // Auto-send edit prompt when AppLayout passes __EDIT__ prefix
+  useEffect(() => {
+    if (selectedText?.startsWith('__EDIT__')) {
+      const prompt = selectedText.slice('__EDIT__'.length);
+      handleSend(prompt);
+      onClearSelection?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedText]);
+
   // States
   if (!isLoaded) return null;
 
