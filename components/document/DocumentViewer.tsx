@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { DocumentFile } from '@/lib/types';
 import Spinner from '@/components/ui/Spinner';
 import PdfViewer from './PdfViewer';
@@ -30,11 +30,15 @@ export default function DocumentViewer({
 }: DocumentViewerProps) {
   const { settings, getCredentialsBase64 } = useSettings();
   const { selectedText, selectionRect, handleMouseUp, clearSelection } = useTextSelection();
+  const uploadingFileRef = useRef<File | null>(null);
 
   // Upload to GigaChat when document is loaded and we have credentials
   useEffect(() => {
     if (document.gigachatFileId || document.isUploading || document.uploadError) return;
     if (!settings) return;
+    if (uploadingFileRef.current === document.file) return;
+
+    uploadingFileRef.current = document.file;
 
     const uploadToGigaChat = async () => {
       onUploadStart();
@@ -51,11 +55,13 @@ export default function DocumentViewer({
         });
         const data = await res.json();
         if (!res.ok) {
+          uploadingFileRef.current = null;
           onUploadError(data.error || 'Ошибка загрузки файла в GigaChat');
         } else {
           onGigaChatFileId(data.fileId);
         }
       } catch {
+        uploadingFileRef.current = null;
         onUploadError('Не удалось подключиться к серверу GigaChat');
       }
     };

@@ -62,7 +62,8 @@ export async function uploadFile(
   accessToken: string,
   fileBuffer: Buffer,
   filename: string,
-  mimeType: string
+  mimeType: string,
+  clientId: string
 ): Promise<GigaChatFileUploadResponse> {
   const formData = new FormData();
   const blob = new Blob([fileBuffer.buffer as ArrayBuffer], { type: mimeType });
@@ -73,6 +74,7 @@ export async function uploadFile(
     method: 'POST',
     headers: {
       Authorization: `Bearer ${accessToken}`,
+      'X-Client-ID': clientId,
     },
     body: formData,
   });
