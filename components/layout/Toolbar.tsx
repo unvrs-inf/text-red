@@ -1,6 +1,6 @@
 "use client";
 
-import { Upload, Settings, FileText, X } from 'lucide-react';
+import { Upload, Settings, FileText, X, Download } from 'lucide-react';
 import TokenCounter from './TokenCounter';
 import { DocumentFile } from '@/lib/types';
 
@@ -9,6 +9,7 @@ interface ToolbarProps {
   onOpenFile: () => void;
   onOpenSettings: () => void;
   onCloseDocument?: () => void;
+  onSaveDocument?: () => void;
 }
 
 export default function Toolbar({
@@ -16,6 +17,7 @@ export default function Toolbar({
   onOpenFile,
   onOpenSettings,
   onCloseDocument,
+  onSaveDocument,
 }: ToolbarProps) {
   return (
     <header className="flex items-center gap-3 h-12 px-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex-shrink-0">
@@ -55,6 +57,16 @@ export default function Toolbar({
             className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400"
           >
             <X className="w-4 h-4" />
+          </button>
+        )}
+
+        {document && onSaveDocument && (
+          <button
+            onClick={onSaveDocument}
+            title="Сохранить документ"
+            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400"
+          >
+            <Download className="w-4 h-4" />
           </button>
         )}
 

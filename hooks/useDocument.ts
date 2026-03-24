@@ -2,8 +2,56 @@
 
 import { useState, useCallback } from 'react';
 import mammoth from 'mammoth';
+import JSZip from 'jszip';
 import { DocumentFile } from '@/lib/types';
 import { MAX_FILE_SIZE_BYTES, ACCEPTED_MIME_TYPES } from '@/lib/constants';
+
+const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+function replaceTextInDocxXml(xmlStr: string, original: string, edited: string): string {
+  const parser = new DOMParser();
+  const xmlDoc = parser.parseFromString(xmlStr, 'application/xml');
+  const paragraphs = xmlDoc.getElementsByTagNameNS('*', 'p');
+
+  for (const para of Array.from(paragraphs)) {
+    const tElements = Array.from(para.getElementsByTagNameNS('*', 't'));
+    if (!tElements.length) continue;
+
+    // Строим карту: позиция символа → {элемент, смещение внутри элемента}
+    const charMap: Array<{ el: Element; pos: number }> = [];
+    for (const t of tElements) {
+      const text = t.textContent ?? '';
+      for (let i = 0; i < text.length; i++) {
+        charMap.push({ el: t, pos: i });
+      }
+    }
+
+    const combined = charMap.map(c => (c.el.textContent ?? '')[c.pos]).join('');
+    const matchIdx = combined.indexOf(original);
+    if (matchIdx === -1) continue;
+
+    const matchEnd = matchIdx + original.length;
+    const affectedEls = new Set(charMap.slice(matchIdx, matchEnd).map(c => c.el));
+    const firstEl = charMap[matchIdx].el;
+
+    for (const el of affectedEls) {
+      const elStart = charMap.findIndex(c => c.el === el);
+      const elEnd = charMap.findLastIndex(c => c.el === el);
+      const prefix = elStart < matchIdx ? (el.textContent ?? '').slice(0, matchIdx - elStart) : '';
+      const suffix = elEnd >= matchEnd ? (el.textContent ?? '').slice(matchEnd - elStart) : '';
+
+      el.textContent = el === firstEl ? prefix + edited + suffix : prefix + suffix;
+
+      if ((el.textContent ?? '').match(/^\s|\s$/)) {
+        el.setAttribute('xml:space', 'preserve');
+      }
+    }
+
+    break; // заменяем только первое вхождение
+  }
+
+  return new XMLSerializer().serializeToString(xmlDoc);
+}
 
 export function useDocument() {
   const [document, setDocument] = useState<DocumentFile | null>(null);
@@ -83,6 +131,45 @@ export function useDocument() {
     [document]
   );
 
+  const buildModifiedDocxFile = useCallback(
+    async (original: string, edited: string): Promise<File> => {
+      if (!document) throw new Error('Документ не загружен');
+      const buf = await document.file.arrayBuffer();
+      const zip = await JSZip.loadAsync(buf);
+      const xmlStr = await zip.file('word/document.xml')!.async('string');
+      const modifiedXml = replaceTextInDocxXml(xmlStr, original, edited);
+      zip.file('word/document.xml', modifiedXml);
+      const blob = await zip.generateAsync({ type: 'blob', mimeType: DOCX_MIME });
+      const baseName = document.name.replace(/\.[^.]+$/, '');
+      return new File([blob], `${baseName}_edited.docx`, { type: DOCX_MIME });
+    },
+    [document]
+  );
+
+  const downloadDocument = useCallback(async () => {
+    if (!document) return;
+
+    let blob: Blob;
+    let filename: string;
+
+    if (document.type === 'docx' && document.viewerReplacement) {
+      const { original, edited } = document.viewerReplacement;
+      const docxFile = await buildModifiedDocxFile(original, edited);
+      blob = docxFile;
+      filename = docxFile.name;
+    } else {
+      blob = document.file;
+      filename = document.name;
+    }
+
+    const url = URL.createObjectURL(blob);
+    const a = window.document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [document, buildModifiedDocxFile]);
+
   return {
     document,
     isLoading,
@@ -94,5 +181,7 @@ export function useDocument() {
     clearDocument,
     applyViewerReplacement,
     buildModifiedTxtFile,
+    buildModifiedDocxFile,
+    downloadDocument,
   };
 }

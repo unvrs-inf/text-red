@@ -28,7 +28,7 @@ const OnboardingScreen = dynamic(() => import('@/components/settings/OnboardingS
 });
 
 export default function AppLayout() {
-  const { document, loadDocument, clearDocument, setGigaChatFileId, setUploadError, setUploading, applyViewerReplacement, buildModifiedTxtFile } =
+  const { document, loadDocument, clearDocument, setGigaChatFileId, setUploadError, setUploading, applyViewerReplacement, buildModifiedTxtFile, downloadDocument } =
     useDocument();
   const { toasts, addToast, removeToast } = useToast();
   const [activeTab, setActiveTab] = useState<'document' | 'chat'>('document');
@@ -195,6 +195,7 @@ export default function AppLayout() {
         onOpenFile={handleOpenFile}
         onOpenSettings={() => setSettingsOpen(true)}
         onCloseDocument={document ? clearDocument : undefined}
+        onSaveDocument={document ? downloadDocument : undefined}
       />
 
       {/* Main content */}
