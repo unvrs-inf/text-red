@@ -1,6 +1,10 @@
 "use client";
 
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback } from 'react';
+
+// Глобальный гвард: хранит File-объекты, загрузка которых уже инициирована.
+// Module scope виден всем экземплярам компонента одновременно (десктоп + мобильный layout).
+const inFlightUploads = new WeakSet<File>();
 import { DocumentFile } from '@/lib/types';
 import Spinner from '@/components/ui/Spinner';
 import PdfViewer from './PdfViewer';
@@ -30,15 +34,14 @@ export default function DocumentViewer({
 }: DocumentViewerProps) {
   const { settings, getCredentialsBase64 } = useSettings();
   const { selectedText, selectionRect, handleMouseUp, clearSelection } = useTextSelection();
-  const uploadingFileRef = useRef<File | null>(null);
 
   // Upload to GigaChat when document is loaded and we have credentials
   useEffect(() => {
     if (document.gigachatFileId || document.isUploading || document.uploadError) return;
     if (!settings) return;
-    if (uploadingFileRef.current === document.file) return;
+    if (inFlightUploads.has(document.file)) return;
 
-    uploadingFileRef.current = document.file;
+    inFlightUploads.add(document.file);
 
     const uploadToGigaChat = async () => {
       onUploadStart();
@@ -55,13 +58,13 @@ export default function DocumentViewer({
         });
         const data = await res.json();
         if (!res.ok) {
-          uploadingFileRef.current = null;
+          inFlightUploads.delete(document.file);
           onUploadError(data.error || 'Ошибка загрузки файла в GigaChat');
         } else {
           onGigaChatFileId(data.fileId);
         }
       } catch {
-        uploadingFileRef.current = null;
+        inFlightUploads.delete(document.file);
         onUploadError('Не удалось подключиться к серверу GigaChat');
       }
     };
