@@ -114,7 +114,7 @@ export default function DocumentViewer({
       {document.type === 'pdf' ? (
         <PdfViewer file={document.file} />
       ) : (
-        <DocxViewer file={document.file} />
+        <DocxViewer file={document.file} textReplacement={document.viewerReplacement} />
       )}
 
       {/* Selection Toolbar */}

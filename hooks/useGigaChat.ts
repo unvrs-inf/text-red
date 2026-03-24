@@ -94,6 +94,26 @@ export function useGigaChat() {
     [settings, getCredentialsBase64]
   );
 
+  const deleteFile = useCallback(
+    async (fileId: string): Promise<void> => {
+      if (!settings) throw new Error('Настройте API-ключ GigaChat в настройках.');
+
+      const res = await fetch('/api/gigachat/delete-file', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          credentials: getCredentialsBase64(),
+          scope: settings.gigachatScope,
+          clientId: settings.gigachatClientId,
+          fileId,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Ошибка удаления файла');
+    },
+    [settings, getCredentialsBase64]
+  );
+
   const testConnection = useCallback(async (): Promise<boolean> => {
     if (!settings) return false;
     try {
@@ -112,5 +132,5 @@ export function useGigaChat() {
     }
   }, [settings, getCredentialsBase64]);
 
-  return { uploadFile, sendMessage, testConnection, isLoading, error };
+  return { uploadFile, sendMessage, deleteFile, testConnection, isLoading, error };
 }

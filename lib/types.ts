@@ -7,6 +7,7 @@ export interface DocumentFile {
   gigachatFileId?: string;        // ID файла в хранилище GigaChat (после upload)
   isUploading: boolean;           // Идёт загрузка в GigaChat
   uploadError?: string;           // Ошибка загрузки
+  viewerReplacement?: { original: string; edited: string }; // Замена текста в просмотрщике
 }
 
 // === Чат ===
@@ -17,6 +18,7 @@ export interface ChatMessage {
   timestamp: number;              // Date.now()
   selectedText?: string;          // Выделенный текст, если сообщение связано с выделением
   tokenUsage?: TokenUsage;        // Расход токенов на этот обмен (приходит в ответе)
+  isEditResponse?: boolean;       // Ответ на запрос редактирования текста
 }
 
 export interface TokenUsage {

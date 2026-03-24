@@ -2,14 +2,15 @@
 
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Copy, Check } from 'lucide-react';
+import { Copy, Check, CheckCheck } from 'lucide-react';
 import { ChatMessage as ChatMessageType } from '@/lib/types';
 
 interface ChatMessageProps {
   message: ChatMessageType;
+  onApply?: () => void;
 }
 
-export default function ChatMessage({ message }: ChatMessageProps) {
+export default function ChatMessage({ message, onApply }: ChatMessageProps) {
   const [copied, setCopied] = useState(false);
   const isUser = message.role === 'user';
 
@@ -59,7 +60,7 @@ export default function ChatMessage({ message }: ChatMessageProps) {
           )}
         </div>
 
-        {/* Time + copy button */}
+        {/* Time + copy button + apply button */}
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400 dark:text-gray-500">{time}</span>
           {!isUser && (
@@ -69,6 +70,15 @@ export default function ChatMessage({ message }: ChatMessageProps) {
               title="Копировать"
             >
               {copied ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+            </button>
+          )}
+          {!isUser && message.isEditResponse && onApply && (
+            <button
+              onClick={onApply}
+              className="text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+              title="Применить к документу"
+            >
+              <CheckCheck className="w-3 h-3" />
             </button>
           )}
         </div>

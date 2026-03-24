@@ -9,6 +9,7 @@ import { useDocument } from '@/hooks/useDocument';
 import { useTextSelection } from '@/hooks/useTextSelection';
 import { useSettings } from '@/hooks/useSettings';
 import { useTheme } from '@/hooks/useTheme';
+import { useGigaChat } from '@/hooks/useGigaChat';
 
 // Lazy-loaded heavy components
 import dynamic from 'next/dynamic';
@@ -27,7 +28,7 @@ const OnboardingScreen = dynamic(() => import('@/components/settings/OnboardingS
 });
 
 export default function AppLayout() {
-  const { document, loadDocument, clearDocument, setGigaChatFileId, setUploadError, setUploading } =
+  const { document, loadDocument, clearDocument, setGigaChatFileId, setUploadError, setUploading, applyViewerReplacement, buildModifiedTxtFile } =
     useDocument();
   const { toasts, addToast, removeToast } = useToast();
   const [activeTab, setActiveTab] = useState<'document' | 'chat'>('document');
@@ -41,6 +42,11 @@ export default function AppLayout() {
   // Text selection state lifted to AppLayout to bridge DocumentViewer ↔ ChatPanel
   const [chatSelectedText, setChatSelectedText] = useState<string | null>(null);
   const { handleMouseUp, clearSelection } = useTextSelection();
+
+  // Edit state: original text that was sent for editing
+  const [pendingEditOriginalText, setPendingEditOriginalText] = useState<string | null>(null);
+  const [chatResetTrigger, setChatResetTrigger] = useState(0);
+  const { uploadFile, deleteFile } = useGigaChat();
 
   // Hotkeys
   useEffect(() => {
@@ -98,6 +104,7 @@ export default function AppLayout() {
   const handleEditWithAI = useCallback(
     (text: string, instruction: string) => {
       const prompt = `Отредактируй следующий фрагмент текста согласно инструкции.\nВерни ТОЛЬКО отредактированный текст без пояснений и комментариев.\n\nФрагмент:\n---\n${text}\n---\n\nИнструкция: ${instruction}`;
+      setPendingEditOriginalText(text);
       setChatSelectedText(undefined as unknown as string);
       // Pass the edit prompt as a direct message
       // We use a special prefix that ChatPanel can detect
@@ -106,6 +113,50 @@ export default function AppLayout() {
       setActiveTab('chat');
     },
     [clearSelection]
+  );
+
+  const handleApplyEdit = useCallback(
+    async (original: string, edited: string) => {
+      if (!document) return;
+
+      if (document.type === 'pdf') {
+        try {
+          await navigator.clipboard.writeText(edited);
+        } catch {
+          // clipboard may be unavailable
+        }
+        addToast('PDF-редактирование недоступно. Текст скопирован в буфер.', 'info');
+        return;
+      }
+
+      try {
+        // 1. Update viewer display
+        applyViewerReplacement(original, edited);
+
+        // 2. Build modified TXT file and re-upload to GigaChat
+        const txtFile = await buildModifiedTxtFile(original, edited);
+        const oldFileId = document.gigachatFileId;
+
+        const newFileId = await uploadFile(txtFile);
+
+        if (oldFileId) {
+          try {
+            await deleteFile(oldFileId);
+          } catch {
+            // Non-critical: old file deletion failure doesn't break anything
+          }
+        }
+
+        setGigaChatFileId(newFileId);
+        // Trigger chat session reset
+        setChatResetTrigger((n) => n + 1);
+        setPendingEditOriginalText(null);
+        addToast('Документ обновлён', 'success');
+      } catch (err) {
+        addToast(err instanceof Error ? err.message : 'Ошибка применения изменений', 'error');
+      }
+    },
+    [document, applyViewerReplacement, buildModifiedTxtFile, uploadFile, deleteFile, setGigaChatFileId, addToast]
   );
 
   const renderDocumentPanel = (withMouseUp = false) =>
@@ -162,6 +213,9 @@ export default function AppLayout() {
               onError={addToast}
               selectedText={chatSelectedText}
               onClearSelection={() => setChatSelectedText(null)}
+              editOriginalText={pendingEditOriginalText}
+              onApplyEdit={handleApplyEdit}
+              resetTrigger={chatResetTrigger}
             />
           </div>
         </div>
@@ -177,6 +231,9 @@ export default function AppLayout() {
                   onError={addToast}
                   selectedText={chatSelectedText}
                   onClearSelection={() => setChatSelectedText(null)}
+                  editOriginalText={pendingEditOriginalText}
+                  onApplyEdit={handleApplyEdit}
+                  resetTrigger={chatResetTrigger}
                 />
               )}
           </div>

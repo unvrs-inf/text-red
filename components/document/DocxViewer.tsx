@@ -6,24 +6,29 @@ import Spinner from '@/components/ui/Spinner';
 
 interface DocxViewerProps {
   file: File;
+  textReplacement?: { original: string; edited: string };
 }
 
-export default function DocxViewer({ file }: DocxViewerProps) {
-  const [html, setHtml] = useState<string>('');
+export default function DocxViewer({ file, textReplacement }: DocxViewerProps) {
+  const [baseHtml, setBaseHtml] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const html = textReplacement
+    ? baseHtml.replace(textReplacement.original, textReplacement.edited)
+    : baseHtml;
 
   useEffect(() => {
     let cancelled = false;
     setIsLoading(true); // eslint-disable-line react-hooks/set-state-in-effect
-    setError(null);  
+    setError(null);
 
     file
       .arrayBuffer()
       .then((buf) => mammoth.convertToHtml({ arrayBuffer: buf }))
       .then((result) => {
         if (!cancelled) {
-          setHtml(result.value);
+          setBaseHtml(result.value);
           setIsLoading(false);
         }
       })

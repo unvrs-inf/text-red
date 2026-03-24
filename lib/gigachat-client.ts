@@ -168,3 +168,22 @@ export async function sendMessage(
 
   return response.json() as Promise<GigaChatChatResponse>;
 }
+
+export async function deleteFile(
+  accessToken: string,
+  fileId: string,
+  clientId: string
+): Promise<void> {
+  const response = await fetch(`${GIGACHAT_API_URL}/files/${fileId}/delete`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'X-Client-ID': clientId,
+    },
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => response.statusText);
+    throw new Error(`Ошибка удаления файла: ${text}`);
+  }
+}

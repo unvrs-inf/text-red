@@ -14,7 +14,7 @@ export function useChat(fileId: string | null) {
   const { addTokens } = useTokenCounter();
 
   const sendMessage = useCallback(
-    async (text: string, selectedText?: string) => {
+    async (text: string, selectedText?: string, isEdit?: boolean) => {
       if (!text.trim()) return;
 
       // Формируем content с выделенным текстом если есть
@@ -51,6 +51,7 @@ export function useChat(fileId: string | null) {
           content: response.content,
           timestamp: Date.now(),
           tokenUsage: response.tokenUsage,
+          isEditResponse: isEdit,
         };
 
         setMessages((prev) => [...prev, assistantMsg]);

@@ -13,27 +13,35 @@ interface ChatPanelProps {
   onError: (message: string, type?: 'success' | 'error' | 'info') => void;
   selectedText?: string | null;
   onClearSelection?: () => void;
+  editOriginalText?: string | null;
+  onApplyEdit?: (original: string, edited: string) => void;
+  resetTrigger?: number;
 }
 
-export default function ChatPanel({ document, onError, selectedText, onClearSelection }: ChatPanelProps) {
+export default function ChatPanel({ document, onError, selectedText, onClearSelection, editOriginalText, onApplyEdit, resetTrigger }: ChatPanelProps) {
   const { settings, isLoaded } = useSettings();
   const fileId = document?.gigachatFileId || null;
   const { messages, isLoading, sendMessage, clearChat, resetSession } = useChat(fileId);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Reset session when document changes
+  // Reset session when document changes or when resetTrigger increments
   useEffect(() => {
     resetSession();
   }, [document?.file, resetSession]);
+
+  useEffect(() => {
+    if (resetTrigger) resetSession();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resetTrigger]);
 
   // Auto-scroll to bottom
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
 
-  const handleSend = async (text: string, sel?: string) => {
+  const handleSend = async (text: string, sel?: string, isEdit?: boolean) => {
     try {
-      await sendMessage(text, sel);
+      await sendMessage(text, sel, isEdit);
     } catch (err) {
       onError(err instanceof Error ? err.message : 'Ошибка отправки сообщения', 'error');
     }
@@ -43,7 +51,7 @@ export default function ChatPanel({ document, onError, selectedText, onClearSele
   useEffect(() => {
     if (selectedText?.startsWith('__EDIT__')) {
       const prompt = selectedText.slice('__EDIT__'.length);
-      handleSend(prompt);
+      handleSend(prompt, undefined, true);
       onClearSelection?.();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -122,7 +130,15 @@ export default function ChatPanel({ document, onError, selectedText, onClearSele
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-2">
         {messages.map((msg) => (
-          <ChatMessage key={msg.id} message={msg} />
+          <ChatMessage
+            key={msg.id}
+            message={msg}
+            onApply={
+              msg.isEditResponse && editOriginalText && onApplyEdit
+                ? () => onApplyEdit(editOriginalText, msg.content)
+                : undefined
+            }
+          />
         ))}
 
         {/* AI typing indicator */}

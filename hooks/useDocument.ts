@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from 'react';
+import mammoth from 'mammoth';
 import { DocumentFile } from '@/lib/types';
 import { MAX_FILE_SIZE_BYTES, ACCEPTED_MIME_TYPES } from '@/lib/constants';
 
@@ -64,6 +65,24 @@ export function useDocument() {
     setIsLoading(false);
   }, []);
 
+  const applyViewerReplacement = useCallback((original: string, edited: string) => {
+    setDocument((prev) =>
+      prev ? { ...prev, viewerReplacement: { original, edited } } : prev
+    );
+  }, []);
+
+  const buildModifiedTxtFile = useCallback(
+    async (original: string, edited: string): Promise<File> => {
+      if (!document) throw new Error('Документ не загружен');
+      const buf = await document.file.arrayBuffer();
+      const result = await mammoth.extractRawText({ arrayBuffer: buf });
+      const modifiedText = result.value.replace(original, edited);
+      const baseName = document.name.replace(/\.[^.]+$/, '');
+      return new File([modifiedText], `${baseName}.txt`, { type: 'text/plain' });
+    },
+    [document]
+  );
+
   return {
     document,
     isLoading,
@@ -73,5 +92,7 @@ export function useDocument() {
     setUploadError,
     setUploading,
     clearDocument,
+    applyViewerReplacement,
+    buildModifiedTxtFile,
   };
 }
