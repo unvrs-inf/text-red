@@ -198,7 +198,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 				</div>
 
 				{/* Test connection */}
-				<div className='flex items-center gap-3 text-black'>
+				<div className='flex items-center gap-3'>
 					<button
 						onClick={handleTest}
 						disabled={
@@ -206,7 +206,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 							!form.gigachatClientId ||
 							!form.gigachatClientSecret
 						}
-						className='flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 transition-colors'
+						className='flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 transition-colors'
 					>
 						{testStatus === 'loading' && <Spinner size='sm' />}
 						Проверить подключение

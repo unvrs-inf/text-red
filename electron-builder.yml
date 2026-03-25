@@ -1,0 +1,26 @@
+appId: com.docchat.app
+productName: DocChat
+
+directories:
+  output: dist-electron
+
+files:
+  - dist/electron/**/*
+
+extraResources:
+  - from: .next/standalone
+    to: app
+    filter:
+      - "**/*"
+
+win:
+  target:
+    - nsis
+
+mac:
+  target:
+    - dmg
+
+linux:
+  target:
+    - AppImage

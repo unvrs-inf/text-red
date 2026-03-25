@@ -7,7 +7,7 @@ import 'react-pdf/dist/Page/TextLayer.css';
 import { ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 import Spinner from '@/components/ui/Spinner';
 
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 
 interface PdfViewerProps {
   file: File;
